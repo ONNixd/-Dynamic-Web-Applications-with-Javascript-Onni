@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODO List</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Todo List</h1>
+        <div class="todo-input">
+            <input type="text" id="taskInput" placeholder="What needs to be done?">
+            <button id="addTask">Add</button>
+            <p id="error" class="error"></p>
+        </div>
+        <ul id="taskList"></ul>
+        <div class="filters">
+            <span id="itemsLeft">0 items left</span>
+            <button data-filter="all" class="filter active">All</button>
+            <button data-filter="active" class="filter">Active</button>
+            <button data-filter="completed" class="filter">Completed</button>
+            <button id="clearCompleted">Clear completed</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const taskInput = document.getElementById("taskInput");
+            const addTaskBtn = document.getElementById("addTask");
+            const taskList = document.getElementById("taskList");
+            const filters = document.querySelectorAll(".filter");
+            const clearCompletedBtn = document.getElementById("clearCompleted");
+            const itemsLeft = document.getElementById("itemsLeft");
+            const error = document.getElementById("error");
+            
+            let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+            
+            function saveTasks() {
+                localStorage.setItem("tasks", JSON.stringify(tasks));
+            }
+            
+            function renderTasks(filter = "all") {
+                taskList.innerHTML = "";
+                let count = 0;
+                tasks.forEach((task, index) => {
+                    if (filter === "active" && task.completed) return;
+                    if (filter === "completed" && !task.completed) return;
+                    
+                    const li = document.createElement("li");
+                    li.className = task.completed ? "completed" : "";
+                    li.innerHTML = `
+                        <input type="checkbox" ${task.completed ? "checked" : ""} data-index="${index}">
+                        <span>${task.text}</span>
+                        <button class="delete" data-index="${index}">&times;</button>
+                    `;
+                    taskList.appendChild(li);
+                    if (!task.completed) count++;
+                });
+                itemsLeft.textContent = `${count} items left`;
+                saveTasks();
+            }
+            
+            addTaskBtn.addEventListener("click", () => {
+                const text = taskInput.value.trim();
+                if (text.length < 3) {
+                    error.textContent = "Task must be at least 3 characters long!";
+                    return;
+                }
+                error.textContent = "";
+                tasks.push({ text, completed: false });
+                taskInput.value = "";
+                renderTasks();
+            });
+            
+            taskList.addEventListener("click", (e) => {
+                if (e.target.matches("input[type='checkbox']")) {
+                    tasks[e.target.dataset.index].completed = e.target.checked;
+                }
+                if (e.target.matches(".delete")) {
+                    tasks.splice(e.target.dataset.index, 1);
+                }
+                renderTasks();
+            });
+            
+            filters.forEach(button => {
+                button.addEventListener("click", () => {
+                    filters.forEach(btn => btn.classList.remove("active"));
+                    button.classList.add("active");
+                    renderTasks(button.dataset.filter);
+                });
+            });
+            
+            clearCompletedBtn.addEventListener("click", () => {
+                tasks = tasks.filter(task => !task.completed);
+                renderTasks();
+            });
+            
+            renderTasks();
+        });
+    </script>
+</body>
+</html>
